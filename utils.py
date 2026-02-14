@@ -1,41 +1,63 @@
 import re
+import os
 import nltk
 import spacy
+from spacy.cli import download as spacy_download
 from sklearn.feature_extraction.text import CountVectorizer
 import pdfplumber
 from collections import Counter
 
-import os
-nltk.data.path.append(os.path.join(os.path.dirname(__file__), 'nltk_data'))
+# -------------------------
+# NLTK setup (cloud-safe)
+# -------------------------
+NLTK_DATA_DIR = os.path.join(os.path.dirname(__file__), 'nltk_data')
+nltk.data.path.append(NLTK_DATA_DIR)
+
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
-    nltk.download('punkt')
+    nltk.download('punkt', download_dir=NLTK_DATA_DIR)
 
-nlp = spacy.load("en_core_web_sm")
+# -------------------------
+# spaCy setup (cloud-safe)
+# -------------------------
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    spacy_download("en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
 
+# -------------------------
+# Core Functions
+# -------------------------
 def extract_text_from_pdf(pdf_file):
     text = ""
     with pdfplumber.open(pdf_file) as pdf:
         for page in pdf.pages:
-            if page.extract_text():
-                text += page.extract_text() + " "
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + " "
     return text
 
 def clean_text(text):
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'[^a-zA-Z0-9 ]', ' ', text)
-    return text.lower()
+    return text.lower().strip()
 
 def ats_score(resume_text, job_desc):
     vectorizer = CountVectorizer().fit_transform([resume_text, job_desc])
     vectors = vectorizer.toarray()
-    score = (vectors[0] @ vectors[1]) / ((vectors[0] @ vectors[0])**0.5 * (vectors[1] @ vectors[1])**0.5)
+
+    denom = ((vectors[0] @ vectors[0]) ** 0.5) * ((vectors[1] @ vectors[1]) ** 0.5)
+    if denom == 0:
+        return 0.0
+
+    score = (vectors[0] @ vectors[1]) / denom
     return round(score * 100, 2)
 
 def extract_keywords(text):
     doc = nlp(text)
-    keywords = set([token.text.lower() for token in doc if token.pos_ in ["NOUN", "PROPN"]])
+    keywords = set(token.text.lower() for token in doc if token.pos_ in ["NOUN", "PROPN"])
     return keywords
 
 def skill_match(resume_text, jd_text):
