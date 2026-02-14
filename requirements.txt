@@ -1,0 +1,7 @@
+streamlit
+pdfplumber
+nltk
+scikit-learn
+spacy
+reportlab
+openpyxl
