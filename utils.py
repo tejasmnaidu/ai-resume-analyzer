@@ -5,7 +5,13 @@ from sklearn.feature_extraction.text import CountVectorizer
 import pdfplumber
 from collections import Counter
 
-nltk.download('punkt')
+import os
+nltk.data.path.append(os.path.join(os.path.dirname(__file__), 'nltk_data'))
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+
 nlp = spacy.load("en_core_web_sm")
 
 def extract_text_from_pdf(pdf_file):
