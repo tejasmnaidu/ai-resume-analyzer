@@ -21,11 +21,15 @@ except LookupError:
 # -------------------------
 # spaCy setup (cloud-safe)
 # -------------------------
+# spaCy setup (cloud-proof)
 try:
     nlp = spacy.load("en_core_web_sm")
-except OSError:
-    spacy_download("en_core_web_sm")
-    nlp = spacy.load("en_core_web_sm")
+except Exception:
+    # Fallback to blank English model if model install isn't permitted on cloud
+    nlp = spacy.blank("en")
+    if "sentencizer" not in nlp.pipe_names:
+        nlp.add_pipe("sentencizer")
+
 
 # -------------------------
 # Core Functions
