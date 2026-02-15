@@ -44,6 +44,15 @@ def highlight_keywords(text, keywords):
         text = pattern.sub(repl, text)
     return text
 
+def generate_bullets_for_skill(skill: str):
+    ideas = [
+        f"Implemented {skill} in production environments to improve system reliability and scalability.",
+        f"Applied {skill} to solve real-world problems, improving application performance and maintainability.",
+        f"Worked hands-on with {skill} as part of end-to-end feature development and deployment.",
+        f"Utilized {skill} in building and optimizing data-driven solutions."
+    ]
+    return random.sample(ideas, 2)
+
 # -------------------------
 # Page + Theme
 # -------------------------
@@ -209,6 +218,23 @@ if uploaded_file and job_desc:
         st.write(", ".join(list(missing)[:40]))
     else:
         st.write("Great! Your resume matches most of the required keywords 🎯")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # -------------------------
+    # Step 5: AI Resume Coach (NEW)
+    # -------------------------
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.subheader("🎯 AI Resume Coach – Add Missing Skills")
+    missing_list = sorted(list(missing))
+    selected_skills = st.multiselect("Select skills you want resume bullets for:", missing_list[:12])
+
+    if selected_skills:
+        for skill in selected_skills:
+            st.write(f"**Suggested bullets for _{skill}_:**")
+            for idea in generate_bullets_for_skill(skill):
+                st.code(idea, language="text")
+    else:
+        st.caption("Select 1–3 missing skills to generate ready-to-use resume bullets.")
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Grammar
