@@ -2,10 +2,8 @@ import re
 import os
 import nltk
 import spacy
-from spacy.cli import download as spacy_download
 from sklearn.feature_extraction.text import CountVectorizer
 import pdfplumber
-from collections import Counter
 
 # -------------------------
 # NLTK setup (cloud-safe)
@@ -23,7 +21,7 @@ except LookupError:
 # -------------------------
 try:
     nlp = spacy.load("en_core_web_sm")
-except Exception:
+except:
     nlp = spacy.blank("en")
     if "sentencizer" not in nlp.pipe_names:
         nlp.add_pipe("sentencizer")
@@ -64,13 +62,15 @@ def ats_score(resume_text, job_desc):
 
 def extract_keywords(text):
     text = clean_text(text)
-    doc = nlp(text)
+    words = text.split()
 
-    keywords = set()
-    for token in doc:
-        if token.pos_ in ["NOUN", "PROPN"] and len(token.text) > 2:
-            keywords.add(token.text.lower())
+    # remove junk words
+    stopwords = set([
+        "and","or","the","is","are","a","an","with","to","for","in","on","of","as","by",
+        "this","that","from","be","will","has","have","had","it","at"
+    ])
 
+    keywords = set(w for w in words if len(w) > 2 and w not in stopwords)
     return keywords
 
 
