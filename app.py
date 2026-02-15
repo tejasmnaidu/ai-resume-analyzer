@@ -4,6 +4,28 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import io
 import time
+import random
+
+def rewrite_bullet_point(bullet: str) -> str:
+    bullet = bullet.strip()
+    if not bullet:
+        return ""
+
+    templates = [
+        "Designed and implemented {} using modern Python practices, improving performance and maintainability.",
+        "Collaborated with cross-functional teams to deliver {}, resulting in measurable improvements.",
+        "Built and optimized {} leveraging Python and data-driven techniques.",
+        "Developed end-to-end solutions for {}, enhancing usability and scalability."
+    ]
+
+    core = bullet.lower()
+    if core.startswith("worked on"):
+        core = core.replace("worked on", "").strip()
+    elif core.startswith("did"):
+        core = core.replace("did", "").strip()
+
+    core = core if core else "key project features"
+    return random.choice(templates).format(core)
 
 st.set_page_config(page_title="AI Resume Analyzer Pro", layout="wide")
 
@@ -114,18 +136,13 @@ if uploaded_file and job_desc:
     matched_skills, total_skills, skill_percent = skill_match(resume_text, job_desc)
     grammar_tips = grammar_readability_suggestions(resume_text)
 
-    # -------------------------
-    # ATS Score Breakdown (NEW FEATURE)
-    # -------------------------
     total_jd_keywords = len(jd_keywords) if len(jd_keywords) > 0 else 1
     matched_keyword_count = len(resume_keywords & jd_keywords)
     keyword_overlap_percent = round((matched_keyword_count / total_jd_keywords) * 100, 2)
-
     readability_percent = 80 if len(grammar_tips) <= 1 else 50
 
     progress.progress(90)
     time.sleep(0.15)
-
     status.success("✅ Analysis complete!")
     progress.progress(100)
 
@@ -137,12 +154,10 @@ if uploaded_file and job_desc:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.metric("ATS Score", f"{score}%")
         st.markdown('</div>', unsafe_allow_html=True)
-
     with col2:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.metric("Skill Match", f"{skill_percent}%")
         st.markdown('</div>', unsafe_allow_html=True)
-
     with col3:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.metric("Missing Skills", len(missing))
@@ -159,10 +174,7 @@ if uploaded_file and job_desc:
 
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("🔍 Missing Keywords")
-    if missing:
-        st.write(", ".join(list(missing)[:40]))
-    else:
-        st.write("Great! Your resume matches most of the required keywords 🎯")
+    st.write(", ".join(list(missing)[:40]) if missing else "Great! Your resume matches most of the required keywords 🎯")
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="panel">', unsafe_allow_html=True)
@@ -176,24 +188,32 @@ if uploaded_file and job_desc:
     st.write(f"Matched Skills ({len(matched_skills)}): ", ", ".join(list(matched_skills)[:30]))
     st.markdown('</div>', unsafe_allow_html=True)
 
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.subheader("✍️ Resume Bullet Rewriter (AI Helper)")
+    bullet_input = st.text_area("Paste a weak resume bullet point to improve:")
+    if st.button("✨ Rewrite Bullet Point"):
+        improved_bullet = rewrite_bullet_point(bullet_input)
+        if improved_bullet:
+            st.success("Improved Version:")
+            st.write(improved_bullet)
+        else:
+            st.warning("Please enter a bullet point to rewrite.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
     if st.button("Download Full AI Report (PDF)"):
         buffer = io.BytesIO()
         c = canvas.Canvas(buffer, pagesize=letter)
         text = c.beginText(40, 750)
-
         text.textLine(f"ATS Score: {score}%")
         text.textLine(f"Skill Match: {skill_percent}%")
         text.textLine(" ")
-
         text.textLine("Missing Keywords:")
         for word in list(missing)[:30]:
             text.textLine(word)
-
         text.textLine(" ")
         text.textLine("AI Suggestions:")
         for tip in grammar_tips:
             text.textLine(f"- {tip}")
-
         c.drawText(text)
         c.showPage()
         c.save()
