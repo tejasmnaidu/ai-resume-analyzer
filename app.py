@@ -286,9 +286,7 @@ if uploaded_file and job_desc:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # -------------------------
-    # Step 7: JD vs Resume – Side-by-Side Smart Diff (NEW)
-    # -------------------------
+    # Step 7: JD vs Resume – Side-by-Side Smart Diff
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("📑 JD vs Resume – Side-by-Side (Smart Diff)")
 
@@ -304,6 +302,41 @@ if uploaded_file and job_desc:
         st.markdown(f"<div style='line-height:1.7; max-height:300px; overflow:auto'>{resume_highlighted}</div>", unsafe_allow_html=True)
 
     st.caption("💡 Highlighted terms show overlap between your resume and the job description (ATS match).")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # -------------------------
+    # Step 8: Resume Improvement Checklist (NEW)
+    # -------------------------
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.subheader("🧾 Resume Improvement Checklist")
+
+    checklist_items = []
+    if score < 70:
+        checklist_items.append("Increase ATS score above 70% by adding relevant JD keywords.")
+    if skill_percent < 60:
+        checklist_items.append("Improve skill match by aligning resume skills with JD requirements.")
+    if proj_score < 50:
+        checklist_items.append("Add or improve project descriptions with JD-related keywords.")
+    if skills_score < 50:
+        checklist_items.append("Enhance skills section with tools/technologies from JD.")
+    if exp_score < 50:
+        checklist_items.append("Improve experience section with quantified achievements.")
+    if len(missing) > 5:
+        checklist_items.append("Add at least 5 missing keywords from the JD into your resume.")
+    if readability_percent < 70:
+        checklist_items.append("Break long sentences and improve resume readability.")
+
+    if "checklist_state" not in st.session_state:
+        st.session_state.checklist_state = {item: False for item in checklist_items}
+
+    for item in checklist_items:
+        checked = st.checkbox(item, value=st.session_state.checklist_state.get(item, False))
+        st.session_state.checklist_state[item] = checked
+
+    completed = sum(st.session_state.checklist_state.values())
+    total = len(st.session_state.checklist_state) if st.session_state.checklist_state else 1
+    st.progress(int((completed / total) * 100))
+    st.caption(f"Progress: {completed}/{total} tasks completed")
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Grammar
