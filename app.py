@@ -53,6 +53,14 @@ def generate_bullets_for_skill(skill: str):
     ]
     return random.sample(ideas, 2)
 
+def generate_learning_plan(skill: str):
+    return {
+        "What to learn": f"Learn core concepts and fundamentals of {skill}.",
+        "Practice": f"Do hands-on exercises and small tasks using {skill}.",
+        "Mini Project": f"Build a small project that demonstrates {skill}.",
+        "Resume Tip": f"Add {skill} with a concrete project example in your resume."
+    }
+
 # -------------------------
 # Step 6 helpers
 # -------------------------
@@ -337,6 +345,22 @@ if uploaded_file and job_desc:
     total = len(st.session_state.checklist_state) if st.session_state.checklist_state else 1
     st.progress(int((completed / total) * 100))
     st.caption(f"Progress: {completed}/{total} tasks completed")
+    st.markdown('</div>', unsafe_allow_html=True)
+        # -------------------------
+    # Step 9: Skill Gap Roadmap (NEW)
+    # -------------------------
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.subheader("📚 Skill Gap Roadmap (Personalized Learning Plan)")
+
+    if missing:
+        for skill in list(missing)[:6]:
+            plan = generate_learning_plan(skill)
+            with st.expander(f"🚀 Learn {skill}"):
+                for k, v in plan.items():
+                    st.write(f"**{k}:** {v}")
+    else:
+        st.success("🎉 No major skill gaps detected. You’re well-aligned with this JD!")
+
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Grammar
