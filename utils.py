@@ -21,15 +21,12 @@ except LookupError:
 # -------------------------
 # spaCy setup (cloud-safe)
 # -------------------------
-# spaCy setup (cloud-proof)
 try:
     nlp = spacy.load("en_core_web_sm")
 except Exception:
-    # Fallback to blank English model if model install isn't permitted on cloud
     nlp = spacy.blank("en")
     if "sentencizer" not in nlp.pipe_names:
         nlp.add_pipe("sentencizer")
-
 
 # -------------------------
 # Core Functions
@@ -43,14 +40,19 @@ def extract_text_from_pdf(pdf_file):
                 text += page_text + " "
     return text
 
+
 def clean_text(text):
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'[^a-zA-Z0-9 ]', ' ', text)
     return text.lower().strip()
 
+
 def ats_score(resume_text, job_desc):
-    vectorizer = CountVectorizer().fit_transform([resume_text, job_desc])
-    vectors = vectorizer.toarray()
+    resume_text = clean_text(resume_text)
+    job_desc = clean_text(job_desc)
+
+    vectorizer = CountVectorizer(stop_words='english', ngram_range=(1, 2))
+    vectors = vectorizer.fit_transform([resume_text, job_desc]).toarray()
 
     denom = ((vectors[0] @ vectors[0]) ** 0.5) * ((vectors[1] @ vectors[1]) ** 0.5)
     if denom == 0:
@@ -59,20 +61,29 @@ def ats_score(resume_text, job_desc):
     score = (vectors[0] @ vectors[1]) / denom
     return round(score * 100, 2)
 
+
 def extract_keywords(text):
+    text = clean_text(text)
     doc = nlp(text)
-    keywords = set(token.text.lower() for token in doc if token.pos_ in ["NOUN", "PROPN"])
+
+    keywords = set()
+    for token in doc:
+        if token.pos_ in ["NOUN", "PROPN"] and len(token.text) > 2:
+            keywords.add(token.text.lower())
+
     return keywords
+
 
 def skill_match(resume_text, jd_text):
     resume_keys = extract_keywords(resume_text)
     jd_keys = extract_keywords(jd_text)
 
-    matched = resume_keys & jd_keys
+    matched = resume_keys.intersection(jd_keys)
     total_required = len(jd_keys) if len(jd_keys) > 0 else 1
     percentage = round((len(matched) / total_required) * 100, 2)
 
     return matched, jd_keys, percentage
+
 
 def grammar_readability_suggestions(text):
     doc = nlp(text)
