@@ -54,7 +54,7 @@ def generate_bullets_for_skill(skill: str):
     return random.sample(ideas, 2)
 
 # -------------------------
-# Step 6 helpers (NEW)
+# Step 6 helpers
 # -------------------------
 def section_score(section_text, jd_keywords):
     section_text_clean = clean_text(section_text)
@@ -76,7 +76,7 @@ def extract_section(text, section_names):
     for name in section_names:
         idx = text_lower.find(name)
         if idx != -1:
-            return text[idx: idx + 800]  # grab chunk after heading
+            return text[idx: idx + 800]
     return ""
 
 # -------------------------
@@ -128,7 +128,7 @@ st.sidebar.info("Upload resume & JD to get ATS score, skill match, and AI sugges
 st.title("📄 AI Resume Analyzer – Pro Version")
 
 # -------------------------
-# Role Templates (Preserved)
+# Role Templates
 # -------------------------
 st.subheader("⚡ Try with Role Templates")
 colA, colB, colC = st.columns(3)
@@ -261,9 +261,7 @@ if uploaded_file and job_desc:
         st.caption("Select 1–3 missing skills to generate ready-to-use resume bullets.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # -------------------------
-    # Step 6: Resume Section Scoring (NEW)
-    # -------------------------
+    # Step 6: Resume Section Scores
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("🧩 Resume Section Scores")
 
@@ -286,6 +284,26 @@ if uploaded_file and job_desc:
         st.metric("💼 Experience", f"{exp_score}%")
         st.caption(exp_fb)
 
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # -------------------------
+    # Step 7: JD vs Resume – Side-by-Side Smart Diff (NEW)
+    # -------------------------
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.subheader("📑 JD vs Resume – Side-by-Side (Smart Diff)")
+
+    left, right = st.columns(2)
+    with left:
+        st.markdown("**📄 Job Description (Highlighted Matches)**")
+        jd_highlighted = highlight_keywords(job_desc, resume_keywords & jd_keywords)
+        st.markdown(f"<div style='line-height:1.7; max-height:300px; overflow:auto'>{jd_highlighted}</div>", unsafe_allow_html=True)
+
+    with right:
+        st.markdown("**📝 Resume (Highlighted Matches)**")
+        resume_highlighted = highlight_keywords(resume_text, resume_keywords & jd_keywords)
+        st.markdown(f"<div style='line-height:1.7; max-height:300px; overflow:auto'>{resume_highlighted}</div>", unsafe_allow_html=True)
+
+    st.caption("💡 Highlighted terms show overlap between your resume and the job description (ATS match).")
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Grammar
