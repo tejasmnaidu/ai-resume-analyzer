@@ -46,19 +46,34 @@ def clean_text(text):
 
 
 def ats_score(resume_text, job_desc):
-    resume_text = clean_text(resume_text)
-    job_desc = clean_text(job_desc)
-
-    vectorizer = CountVectorizer(stop_words='english', ngram_range=(1, 2))
-    vectors = vectorizer.fit_transform([resume_text, job_desc]).toarray()
+    # Semantic similarity (cosine)
+    vectorizer = CountVectorizer().fit_transform([resume_text, job_desc])
+    vectors = vectorizer.toarray()
 
     denom = ((vectors[0] @ vectors[0]) ** 0.5) * ((vectors[1] @ vectors[1]) ** 0.5)
-    if denom == 0:
-        return 0.0
+    semantic_score = 0
+    if denom != 0:
+        semantic_score = (vectors[0] @ vectors[1]) / denom
 
-    score = (vectors[0] @ vectors[1]) / denom
-    return round(score * 100, 2)
+    semantic_score = semantic_score * 100
 
+    # Keyword overlap
+    resume_keywords = extract_keywords(resume_text)
+    jd_keywords = extract_keywords(job_desc)
+    total_required = len(jd_keywords) if len(jd_keywords) > 0 else 1
+    keyword_overlap = (len(resume_keywords & jd_keywords) / total_required) * 100
+
+    # Readability heuristic
+    readability_score = 80
+
+    # Final ATS score (weighted)
+    final_score = (
+        0.5 * semantic_score +
+        0.3 * keyword_overlap +
+        0.2 * readability_score
+    )
+
+    return round(min(final_score, 100), 2)
 
 def extract_keywords(text):
     text = clean_text(text)
