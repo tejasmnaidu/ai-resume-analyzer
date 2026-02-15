@@ -58,7 +58,7 @@ st.sidebar.info("Upload resume & JD to get ATS score, skill match, and AI sugges
 st.title("📄 AI Resume Analyzer – Pro Version")
 
 # -------------------------
-# Role Templates (NEW FEATURE)
+# Role Templates
 # -------------------------
 st.subheader("⚡ Try with Role Templates")
 colA, colB, colC = st.columns(3)
@@ -113,6 +113,16 @@ if uploaded_file and job_desc:
 
     matched_skills, total_skills, skill_percent = skill_match(resume_text, job_desc)
     grammar_tips = grammar_readability_suggestions(resume_text)
+
+    # -------------------------
+    # ATS Score Breakdown (NEW FEATURE)
+    # -------------------------
+    total_jd_keywords = len(jd_keywords) if len(jd_keywords) > 0 else 1
+    matched_keyword_count = len(resume_keywords & jd_keywords)
+    keyword_overlap_percent = round((matched_keyword_count / total_jd_keywords) * 100, 2)
+
+    readability_percent = 80 if len(grammar_tips) <= 1 else 50
+
     progress.progress(90)
     time.sleep(0.15)
 
@@ -139,6 +149,13 @@ if uploaded_file and job_desc:
         st.markdown('</div>', unsafe_allow_html=True)
 
     st.progress(min(int(score), 100))
+
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.subheader("📈 ATS Score Breakdown (Explainable AI)")
+    st.write(f"🔑 Keyword Overlap Contribution: {keyword_overlap_percent}%")
+    st.write(f"🧩 Skill Match Contribution: {skill_percent}%")
+    st.write(f"📖 Readability Contribution: {readability_percent}%")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("🔍 Missing Keywords")
