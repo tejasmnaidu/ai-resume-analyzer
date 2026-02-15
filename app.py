@@ -4,8 +4,12 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import io
 import time
+import re
 import random
 
+# -------------------------
+# Helpers
+# -------------------------
 def rewrite_bullet_point(bullet: str) -> str:
     bullet = bullet.strip()
     if not bullet:
@@ -27,11 +31,24 @@ def rewrite_bullet_point(bullet: str) -> str:
     core = core if core else "key project features"
     return random.choice(templates).format(core)
 
-st.set_page_config(page_title="AI Resume Analyzer Pro", layout="wide")
+def highlight_keywords(text, keywords):
+    def repl(match):
+        return (
+            "<mark style='background:linear-gradient(135deg,#22c55e,#3b82f6);"
+            "color:black;padding:2px 6px;border-radius:6px'>"
+            f"{match.group(0)}</mark>"
+        )
+
+    for kw in sorted(keywords, key=len, reverse=True):
+        pattern = re.compile(rf"\b{re.escape(kw)}\b", re.IGNORECASE)
+        text = pattern.sub(repl, text)
+    return text
 
 # -------------------------
-# Colorful Professional UI + Animations
+# Page + Theme
 # -------------------------
+st.set_page_config(page_title="AI Resume Analyzer Pro", layout="wide")
+
 st.markdown("""
 <style>
 .stApp {
@@ -63,14 +80,10 @@ button {
   border-radius: 10px !important;
   border: none !important;
 }
-button:hover {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-  transition: 0.15s ease-in-out;
-}
 div[role="progressbar"] > div {
   background: linear-gradient(90deg, #22c55e, #3b82f6) !important;
 }
+mark { font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -80,7 +93,7 @@ st.sidebar.info("Upload resume & JD to get ATS score, skill match, and AI sugges
 st.title("📄 AI Resume Analyzer – Pro Version")
 
 # -------------------------
-# Role Templates
+# Role Templates (Preserved)
 # -------------------------
 st.subheader("⚡ Try with Role Templates")
 colA, colB, colC = st.columns(3)
@@ -100,11 +113,9 @@ if "job_desc" not in st.session_state:
 with colA:
     if st.button("🧑‍💻 Python Developer"):
         st.session_state.job_desc = python_jd
-
 with colB:
     if st.button("📊 Data Analyst"):
         st.session_state.job_desc = data_analyst_jd
-
 with colC:
     if st.button("🤖 ML Engineer"):
         st.session_state.job_desc = ml_engineer_jd
@@ -112,6 +123,9 @@ with colC:
 uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
 job_desc = st.text_area("Paste Job Description", value=st.session_state.job_desc)
 
+# -------------------------
+# Analysis
+# -------------------------
 if uploaded_file and job_desc:
     progress = st.progress(0)
     status = st.empty()
@@ -119,13 +133,13 @@ if uploaded_file and job_desc:
     status.info("🔍 Extracting resume text...")
     resume_text = extract_text_from_pdf(uploaded_file)
     progress.progress(25)
-    time.sleep(0.15)
+    time.sleep(0.1)
 
     status.info("🧹 Cleaning text & preparing vectors...")
     resume_clean = clean_text(resume_text)
     job_clean = clean_text(job_desc)
     progress.progress(50)
-    time.sleep(0.15)
+    time.sleep(0.1)
 
     status.info("🤖 Running ATS scoring & NLP analysis...")
     score = ats_score(resume_clean, job_clean)
@@ -136,25 +150,30 @@ if uploaded_file and job_desc:
     matched_skills, total_skills, skill_percent = skill_match(resume_text, job_desc)
     grammar_tips = grammar_readability_suggestions(resume_text)
 
+    # ATS Breakdown
     total_jd_keywords = len(jd_keywords) if len(jd_keywords) > 0 else 1
     matched_keyword_count = len(resume_keywords & jd_keywords)
     keyword_overlap_percent = round((matched_keyword_count / total_jd_keywords) * 100, 2)
-
     readability_percent = 80 if len(grammar_tips) <= 1 else 50
 
-    progress.progress(90)
-    time.sleep(0.15)
-
-    status.success("✅ Analysis complete!")
     progress.progress(100)
+    status.success("✅ Analysis complete!")
 
-    st.markdown('<div class="fade-in">', unsafe_allow_html=True)
     st.success("Analysis Complete ✅")
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("ATS Score", f"{score}%")
-    col2.metric("Skill Match", f"{skill_percent}%")
-    col3.metric("Missing Skills", len(missing))
+    with col1:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.metric("ATS Score", f"{score}%")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.metric("Skill Match", f"{skill_percent}%")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with col3:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.metric("Missing Skills", len(missing))
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.progress(min(int(score), 100))
 
@@ -165,75 +184,84 @@ if uploaded_file and job_desc:
     st.write(f"📖 Readability Contribution: {readability_percent}%")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # -------------------------
-    # Step 3 – Job Readiness Summary (NEW)
-    # -------------------------
-    if score >= 60 and skill_percent >= 50:
-        readiness = "High"
-        color = "🟢"
-    elif score >= 40:
-        readiness = "Medium"
-        color = "🟡"
-    else:
-        readiness = "Low"
-        color = "🔴"
-
+    # Job Readiness Summary
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("🧭 Job Readiness Summary")
-    st.write(f"{color} **Overall Readiness: {readiness}**")
-
-    action_plan = []
-    if score < 60:
-        action_plan.append("Improve ATS score by adding missing keywords from JD.")
-    if skill_percent < 50:
-        action_plan.append("Work on improving skill alignment with the job role.")
-    if len(missing) > 5:
-        action_plan.append("Add 2–3 relevant skills or tools to your resume.")
-    if grammar_tips:
-        action_plan.append("Rewrite long sentences for better readability.")
-    if not action_plan:
-        action_plan.append("Your resume is strong. Start applying and prepare for interviews.")
-
-    for step in action_plan:
-        st.write(f"✅ {step}")
-
+    readiness = "Low" if score < 40 else "Medium" if score < 70 else "High"
+    st.write(f"🔴 Overall Readiness: {readiness}")
+    st.write("✅ Improve ATS score by adding missing keywords from JD.")
+    st.write("✅ Work on improving skill alignment with the job role.")
+    st.write("✅ Add 2–3 relevant skills or tools to your resume.")
+    st.write("✅ Rewrite long sentences for better readability.")
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # Step 4: Highlighted Resume (ATS View)
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.subheader("🔦 Highlighted Resume Preview (ATS View)")
+    highlighted_resume = highlight_keywords(resume_text, resume_keywords & jd_keywords)
+    st.markdown(f"<div style='line-height:1.7'>{highlighted_resume}</div>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Missing Keywords
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("🔍 Missing Keywords")
-    st.write(", ".join(list(missing)[:40]) if missing else "Great! Your resume matches most keywords 🎯")
+    if missing:
+        st.write(", ".join(list(missing)[:40]))
+    else:
+        st.write("Great! Your resume matches most of the required keywords 🎯")
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # Grammar
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("🧠 Grammar & Readability Suggestions")
     for tip in grammar_tips:
         st.info(tip)
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # Skill Match Details
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("📊 Skill Match Details")
     st.write(f"Matched Skills ({len(matched_skills)}): ", ", ".join(list(matched_skills)[:30]))
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # Bullet Rewriter
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("✍️ Resume Bullet Rewriter (AI Helper)")
-    bullet_input = st.text_area("Paste a weak resume bullet point to improve:")
+    bullet_input = st.text_area("Paste a weak resume bullet point to improve:", key="bullet_rewriter")
     if st.button("✨ Rewrite Bullet Point"):
-        improved = rewrite_bullet_point(bullet_input)
-        st.success(improved if improved else "Enter a bullet point.")
+        improved_bullet = rewrite_bullet_point(bullet_input)
+        if improved_bullet:
+            st.success("Improved Version:")
+            st.write(improved_bullet)
+        else:
+            st.warning("Please enter a bullet point to rewrite.")
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # PDF Download
     if st.button("Download Full AI Report (PDF)"):
         buffer = io.BytesIO()
         c = canvas.Canvas(buffer, pagesize=letter)
         text = c.beginText(40, 750)
         text.textLine(f"ATS Score: {score}%")
         text.textLine(f"Skill Match: {skill_percent}%")
+        text.textLine(" ")
+        text.textLine("Missing Keywords:")
+        for word in list(missing)[:30]:
+            text.textLine(word)
+        text.textLine(" ")
+        text.textLine("AI Suggestions:")
+        for tip in grammar_tips:
+            text.textLine(f"- {tip}")
         c.drawText(text)
         c.showPage()
         c.save()
         buffer.seek(0)
-        st.download_button("Download Report", buffer, "ai_resume_report.pdf", "application/pdf")
 
+        st.download_button(
+            label="Download Report",
+            data=buffer,
+            file_name="ai_resume_report.pdf",
+            mime="application/pdf"
+        )
 else:
     st.info("Upload resume PDF and paste job description to start AI analysis.")
