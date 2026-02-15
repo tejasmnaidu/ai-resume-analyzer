@@ -54,6 +54,32 @@ def generate_bullets_for_skill(skill: str):
     return random.sample(ideas, 2)
 
 # -------------------------
+# Step 6 helpers (NEW)
+# -------------------------
+def section_score(section_text, jd_keywords):
+    section_text_clean = clean_text(section_text)
+    section_keywords = extract_keywords(section_text_clean)
+    if not jd_keywords:
+        return 0, "No job description keywords to compare."
+    match_count = len(section_keywords & jd_keywords)
+    percent = round((match_count / len(jd_keywords)) * 100, 2)
+    if percent >= 60:
+        feedback = "Strong alignment with job requirements."
+    elif percent >= 30:
+        feedback = "Moderate alignment. Consider adding more relevant keywords."
+    else:
+        feedback = "Low alignment. Add more relevant skills/projects matching the JD."
+    return percent, feedback
+
+def extract_section(text, section_names):
+    text_lower = text.lower()
+    for name in section_names:
+        idx = text_lower.find(name)
+        if idx != -1:
+            return text[idx: idx + 800]  # grab chunk after heading
+    return ""
+
+# -------------------------
 # Page + Theme
 # -------------------------
 st.set_page_config(page_title="AI Resume Analyzer Pro", layout="wide")
@@ -220,9 +246,7 @@ if uploaded_file and job_desc:
         st.write("Great! Your resume matches most of the required keywords 🎯")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # -------------------------
-    # Step 5: AI Resume Coach (NEW)
-    # -------------------------
+    # Step 5: AI Resume Coach
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("🎯 AI Resume Coach – Add Missing Skills")
     missing_list = sorted(list(missing))
@@ -235,6 +259,33 @@ if uploaded_file and job_desc:
                 st.code(idea, language="text")
     else:
         st.caption("Select 1–3 missing skills to generate ready-to-use resume bullets.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # -------------------------
+    # Step 6: Resume Section Scoring (NEW)
+    # -------------------------
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.subheader("🧩 Resume Section Scores")
+
+    projects_text = extract_section(resume_text, ["projects", "project"])
+    skills_text = extract_section(resume_text, ["skills", "technical skills"])
+    experience_text = extract_section(resume_text, ["experience", "work experience", "professional experience"])
+
+    proj_score, proj_fb = section_score(projects_text, jd_keywords)
+    skills_score, skills_fb = section_score(skills_text, jd_keywords)
+    exp_score, exp_fb = section_score(experience_text, jd_keywords)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("📁 Projects", f"{proj_score}%")
+        st.caption(proj_fb)
+    with c2:
+        st.metric("🧰 Skills", f"{skills_score}%")
+        st.caption(skills_fb)
+    with c3:
+        st.metric("💼 Experience", f"{exp_score}%")
+        st.caption(exp_fb)
+
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Grammar
